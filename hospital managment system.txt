@@ -1,0 +1,195 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class Main {
+    static final String url = "jdbc:mysql://localhost:3306/hem";
+    static final String username = "root";
+    static final String password = "3429";
+    private static Connection connection;
+
+    public static void main(String[] args) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("Driver Loading Successfully....");
+
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Connection Loading Successfully.... ");
+
+            Scanner scanner = new Scanner(System.in);
+
+            while (true) {
+                System.out.println("1. New Patients Add.");
+                System.out.println("2. View All Patient Detail.");
+                System.out.println("3. Hospital View Doctor Detail.");
+                System.out.println("4. Appointment Patient Date And Doctor Detail.");
+                System.out.println("5. Get Patients Id.");
+                System.out.println("6. Get Doctor Id.");
+                System.out.println("7. Exit.");
+                System.out.print("Please Enter The Correct Choice: ");
+                int choice = scanner.nextInt();
+
+                switch (choice) {
+                    case 1:
+                        new_patients_add(scanner);
+                        break;
+                    case 2:
+                        view_all_patients_detail();
+                        break;
+                    case 3:
+                        view_all_doctor_detail();
+                        break;
+                    case 4:
+                        Appointment_Patient_Date_And_Doctor_Detail(scanner);
+                        break;
+                    case 5:
+                        patients_get_id(scanner);
+                        break;
+                    case 6:
+                        doctor_get_id(scanner);
+                        break;
+                    case 7:
+                        exit(scanner);
+                        return;  // Exit the loop and terminate the program
+                    default:
+                        System.out.println("Please Enter a Valid Choice!!");
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void new_patients_add(Scanner scanner) {
+        String query = "INSERT INTO patients(name, age, gender) VALUES(?, ?, ?)";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            System.out.print("Please Enter Your Name: ");
+            String name = scanner.next();
+
+            System.out.print("Please Enter Your Age: ");
+            int age = scanner.nextInt();
+
+            System.out.print("Please Enter Your Gender: ");
+            String gender = scanner.next();
+
+            preparedStatement.setString(1, name);
+            preparedStatement.setInt(2, age);
+            preparedStatement.setString(3, gender);
+
+            int result = preparedStatement.executeUpdate();
+            if (result > 0) {
+                System.out.println("Patient Added Successfully...");
+            } else {
+                System.out.println("Failed to Add Patient...");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void view_all_patients_detail() {
+        String query = "SELECT * FROM patients";
+        try (Statement statement = connection.createStatement(); 
+             ResultSet rs = statement.executeQuery(query)) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                int age = rs.getInt("age");
+                String gender = rs.getString("gender");
+
+                System.out.println("Patient Details:");
+                System.out.println("===============================");
+                System.out.println("Name: " + name);
+                System.out.println("Age: " + age);
+                System.out.println("Gender: " + gender);
+                System.out.println("===============================");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void view_all_doctor_detail() {
+        String query = "SELECT * FROM doctor";
+        try (Statement statement = connection.createStatement(); 
+             ResultSet rs = statement.executeQuery(query)) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                String doctorSpecialization = rs.getString("doctor_specialization");
+
+                System.out.println("Doctor Details:");
+                System.out.println("===============================");
+                System.out.println("Name: " + name);
+                System.out.println("Specialization: " + doctorSpecialization);
+                System.out.println("===============================");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void Appointment_Patient_Date_And_Doctor_Detail(Scanner scanner) {
+        String query = "SELECT doctor_id FROM appointments WHERE appointment_date = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            System.out.print("Please Enter The Appointment Date (YYYY-MM-DD): ");
+            String appointmentDate = scanner.next();
+            preparedStatement.setString(1, appointmentDate);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    int bookedDoctorId = resultSet.getInt("doctor_id");
+                    System.out.println("Doctor ID " + bookedDoctorId + " is booked on " + appointmentDate);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void patients_get_id(Scanner scanner) {
+        String query = "SELECT id, name FROM patients WHERE name = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            System.out.print("Please Enter Patient Name: ");
+            String name = scanner.next();
+            preparedStatement.setString(1, name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    String patientName = resultSet.getString("name");
+                    System.out.println("Patient Name: " + patientName + " | Patient ID: " + id);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void doctor_get_id(Scanner scanner) {
+        String query = "SELECT id, doctor_specialization, name FROM doctor WHERE name = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            System.out.print("Please Enter Doctor Name: ");
+            String name = scanner.next();
+            preparedStatement.setString(1, name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    String doctorName = resultSet.getString("name");
+                    String doctorSpecialization = resultSet.getString("doctor_specialization");
+                    System.out.println("Doctor ID: " + id + " | Name: " + doctorName + " | Specialization: " + doctorSpecialization);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void exit(Scanner scanner) {
+        System.out.println("Exiting the application. Thank you for visiting our hospital!");
+        scanner.close();
+    }
+}
